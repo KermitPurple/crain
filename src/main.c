@@ -77,14 +77,19 @@ void draw(trail_t *trails, int len){
     }
 }
 
+// TODO get a better name
+void set_chars(trail_t *trail){
+    trail->len = rand_between(term_size.y * 0.2, term_size.y * 0.4);
+    trail->chars = random_chars(trail->len);
+}
+
 void update(trail_t *trails, int len){
     for(int i = 0; i < len; i++){
         trails[i].pos.y += 1;
         if(trails[i].pos.y - trails[i].len > term_size.y){
             trails[i].pos.y = 0;
             free(trails[i].chars);
-            trails[i].len = rand_between(term_size.y * 0.2, term_size.y * 0.4);
-            trails[i].chars = random_chars(trails[i].len);
+            set_chars(trails + i);
         }
     }
 }
@@ -95,8 +100,7 @@ trail_t *make_trails(){
     for(int i = 0; i < len; i++){
         result[i].pos.x = i;
         result[i].pos.y = rand_between(-30, term_size.y + 30);
-        result[i].len = rand_between(term_size.y * 0.2, term_size.y * 0.4);
-        result[i].chars = random_chars(result[i].len);
+        set_chars(result + i);
     }
     return result;
 }
