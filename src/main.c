@@ -5,6 +5,9 @@
 #include<stdlib.h>
 #include<unistd.h>
 #include<ncurses.h>
+#ifndef _WIN32
+#include<sys/ioctl.h>
+#endif
 
 #define _ARG3(a, b, c, ...) c
 #define _NEW1(LVAL) _NEW2(LVAL, 1)
@@ -28,6 +31,17 @@ typedef struct trail{
     char *chars;
     int len;
 } trail_t;
+
+pos_t get_terminal_size(){
+#ifdef _WIN32
+    fputs("Shanye hasn't implemented this for windows yet");
+    exit(1);
+#else
+    struct winsize ws;
+    ioctl(0, TIOCGWINSZ, &ws);
+    return (pos_t){ws.ws_col, ws.ws_row};
+#endif
+}
 
 int rand_between(int start, int end){
     return rand() % end + start;
@@ -124,11 +138,10 @@ int main(){
     trail_t *trails = make_trails();
     while(tolower(getch()) != 'q'){
         clock_t begin = clock();
-        int nexty, nextx;
-        getmaxyx(stdscr, nexty, nextx);
-        if(nextx != term_size.x || nexty != term_size.y){
+        pos_t next_size = get_terminal_size();
+        if(next_size.x != term_size.x || next_size.y != term_size.y){
             free_trails(trails);
-            term_size = (pos_t){nextx, nexty};
+            term_size = next_size;
             trails = make_trails();
             clear();
         }
