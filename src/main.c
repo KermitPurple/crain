@@ -124,10 +124,10 @@ int main(){
         getmaxyx(stdscr, nexty, nextx);
         if(nextx != term_size.x || nexty != term_size.y){
             free_trails(trails);
+            term_size = (pos_t){nextx, nexty};
             trails = make_trails();
             clear();
         }
-        term_size = (pos_t){nextx, nexty};
         update(trails, term_size.x);
         draw(trails, term_size.x);
         refresh();
