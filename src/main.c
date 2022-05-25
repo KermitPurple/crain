@@ -1,10 +1,8 @@
 #include<math.h>
 #include<time.h>
-#include<ctype.h>
-#include<string.h>
+#include<stdio.h>
 #include<stdlib.h>
 #include<unistd.h>
-#include<ncurses.h>
 #ifndef _WIN32
 #include<sys/ioctl.h>
 #endif
@@ -18,6 +16,12 @@
         _NEW1,\
     )(__VA_ARGS__)
 
+#define CSI "\e["
+#define RGB CSI "38;2;"
+#define HIDE CSI "?25l"
+#define SHOW CSI "?25h"
+#define MOVE "H"
+#define RESET CSI "0m"
 #define CHARACTERS_LEN 94
 const char CHARACTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_-+={}|[]\\;:'\",<.>/?`~";
 struct pos term_size;
@@ -41,6 +45,10 @@ pos_t get_terminal_size(){
     ioctl(0, TIOCGWINSZ, &ws);
     return (pos_t){ws.ws_col, ws.ws_row};
 #endif
+}
+
+void move(int x, int y) {
+    printf(CSI "%d;%d" MOVE, x, y);
 }
 
 int rand_between(int start, int end){
@@ -72,14 +80,14 @@ int max(int a, int b){
 
 void draw_trail(trail_t *trail){
     for(int i = 0; trail->pos.y - i >= 0; i++){
+        move(trail->pos.y - i, trail->pos.x);
         if(trail->chars[i] == '\0'){
-            mvaddch(trail->pos.y - i, trail->pos.x, ' ');
+            putchar(' ');
             break;
         }
-        mvprintw(
-            trail->pos.y - i,
-            trail->pos.x,
-            "%c",
+        printf(
+            CSI RGB "0;%d;0m%c",
+            max(0, 255 - i * (255 / trail->len)),
             trail->chars[i]
         );
     }
@@ -126,34 +134,35 @@ void free_trails(trail_t* trails){
     free(trails);
 }
 
+void cleanup(){
+    system("clear");
+    printf(SHOW RESET);
+    exit(0);
+}
+
 int main(){
     srand(time(0));
-    initscr();
-    curs_set(0); // hide cursor
-    nodelay(stdscr, TRUE); // don't block input
-    noecho(); // don't display gotten characters
-    getmaxyx(stdscr, term_size.y, term_size.x); // calculate terminal size
+    signal(SIGINT, cleanup);
+    term_size = get_terminal_size();
     double desired_time = 0.1;
-    move(1000, 1000);
     trail_t *trails = make_trails();
-    while(tolower(getch()) != 'q'){
+    printf(HIDE);
+    system("clear");
+    while(1){
         clock_t begin = clock();
         pos_t next_size = get_terminal_size();
         if(next_size.x != term_size.x || next_size.y != term_size.y){
             free_trails(trails);
             term_size = next_size;
             trails = make_trails();
-            clear();
+            system("clear");
         }
         update(trails, term_size.x);
         draw(trails, term_size.x);
-        refresh();
         double elapsed = (double)(clock() - begin) / CLOCKS_PER_SEC;
         if(elapsed < desired_time){
             usleep((desired_time - elapsed) * 1000000);
         }
     }
-    curs_set(1); // show cursor
-    endwin();
     return 0;
 }

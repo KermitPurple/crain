@@ -1,11 +1,10 @@
 # Last updated: 2022-05-11
-CFLAGS=-Wextra -Iinclude $(shell pkg-config ncurses --cflags)
+CFLAGS=-Wextra -Iinclude
 CXXFLAGS=-std=c++20
 TARGET=bin/test
 RM=rm -rf
 OBJ=$(patsubst src/%,bin/%.o,$(basename $(wildcard src/*)))
 DBGR=lldb
-LIBS=$(shell pkg-config ncurses --libs)
 
 all: $(TARGET)
 
