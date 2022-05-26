@@ -2,7 +2,9 @@
 #include<time.h>
 #include<stdio.h>
 #include<stdlib.h>
+#include<string.h>
 #include<unistd.h>
+#include<stdarg.h>
 #ifndef _WIN32
 #include<sys/ioctl.h>
 #endif
@@ -23,7 +25,10 @@
 #define MOVE "H"
 #define RESET CSI "0m"
 #define CHARACTERS_LEN 94
+#define BUF_LEN (1 << 20)
 const char CHARACTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_-+={}|[]\\;:'\",<.>/?`~";
+char buf[BUF_LEN];
+int buf_idx;
 struct pos term_size;
 
 typedef struct pos {
@@ -47,8 +52,15 @@ pos_t get_terminal_size(){
 #endif
 }
 
+void bprintf(char *fmt, ...){
+    va_list args;
+    va_start(args, fmt);
+    buf_idx += vsprintf(buf + buf_idx, fmt, args);
+    va_end(args);
+}
+
 void move(int x, int y) {
-    printf(CSI "%d;%d" MOVE, x, y);
+    bprintf(CSI "%d;%d" MOVE, x, y);
 }
 
 int rand_between(int start, int end){
@@ -82,10 +94,10 @@ void draw_trail(trail_t *trail){
     for(int i = 0; trail->pos.y - i >= 0; i++){
         move(trail->pos.y - i, trail->pos.x);
         if(trail->chars[i] == '\0'){
-            putchar(' ');
+            buf[buf_idx++] = ' ';
             break;
         }
-        printf(
+        bprintf(
             CSI RGB "0;%d;0m%c",
             max(0, 255 - i * (255 / trail->len)),
             trail->chars[i]
@@ -144,12 +156,14 @@ int main(){
     srand(time(0));
     signal(SIGINT, cleanup);
     term_size = get_terminal_size();
-    double desired_time = 0.1;
+    double desired_time = 0.05;
     trail_t *trails = make_trails();
     printf(HIDE);
     system("clear");
     while(1){
         clock_t begin = clock();
+        memset(buf, '\0', BUF_LEN);
+        buf_idx = 0;
         pos_t next_size = get_terminal_size();
         if(next_size.x != term_size.x || next_size.y != term_size.y){
             free_trails(trails);
@@ -159,6 +173,7 @@ int main(){
         }
         update(trails, term_size.x);
         draw(trails, term_size.x);
+        puts(buf);
         double elapsed = (double)(clock() - begin) / CLOCKS_PER_SEC;
         if(elapsed < desired_time){
             usleep((desired_time - elapsed) * 1000000);
