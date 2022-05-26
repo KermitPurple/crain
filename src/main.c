@@ -173,7 +173,7 @@ int main(){
         }
         update(trails, term_size.x);
         draw(trails, term_size.x);
-        puts(buf);
+        fputs(buf, stdout);
         double elapsed = (double)(clock() - begin) / CLOCKS_PER_SEC;
         if(elapsed < desired_time){
             usleep((desired_time - elapsed) * 1000000);
